@@ -1,0 +1,114 @@
+body, .App {
+  background-color: #fff;
+}
+
+.App h1 {
+  color: #222;
+  font-size: 2rem;
+  margin: 2rem 0;
+  text-align: left;
+}
+
+
+/* Table layout and responsive wrapper */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 8px;
+  background: transparent;
+}
+
+/* Base table */
+.data-table {
+  width: 100%;
+  min-width: 640px; /* allows horizontal scroll on small screens */
+  border-collapse: collapse;
+  font-family: inherit;
+  font-size: 0.95rem;
+  color: #222;
+  background: #ffffff;
+}
+
+/* Header */
+.data-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  background: #2d5a2d;
+  border-bottom: 2px solid #e6e9ef;
+  border-right: 1px solid #ffffff;
+  color: #ffffff;
+}
+
+/* Remove right border from last header cell */
+.data-table thead th:last-child {
+  border-right: none;
+}
+
+/* Cells */
+.data-table tbody td,
+.data-table thead th {
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  word-break: break-word;
+  border-right: 1px solid #eef0f4;
+}
+
+/* Remove right border from last cell in each row */
+.data-table tbody td:last-child,
+.data-table thead th:last-child {
+  border-right: none;
+}
+
+/* Row separators and zebra striping */
+.data-table tbody tr {
+  transition: background-color 160ms ease, box-shadow 160ms ease;
+  border-bottom: 1px solid #eef0f4;
+}
+.data-table tbody tr:nth-child(even) td {
+  background: #fbfbfd;
+}
+
+/* Hover highlight */
+.data-table tbody tr:hover td {
+  background: rgba(240, 241, 248, 0.04);
+}
+
+/* Small muted text for secondary fields */
+.data-table .muted {
+  color: #888;
+  font-size: 0.9rem;
+}
+
+/* Actions column */
+.data-table td.actions {
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Compact variant */
+.data-table.compact thead th,
+.data-table.compact tbody td {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+/* Mobile: allow horizontal scrolling rather than complex stacking */
+@media (max-width: 720px) {
+  .data-table {
+    min-width: 560px;
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  .data-table tbody tr,
+  .data-table tbody tr:hover td {
+    transition: none;
+  }
+}
