@@ -1,23 +1,113 @@
 import express from "express";
+import fs from "fs";
+import csv from "csv-parser";
+import db, { isSeeded } from "./init_db.js";
 
 const app = express();
 const port = 3000;
 
-// use fs to read data from payroll_data.csv to data variable
-import fs from "fs";
-import csv from "csv-parser";
+// app.use for creating post request and parsing the body of the request
+app.use(express.json());
 
-const data = [];
-fs.createReadStream("payroll_data.csv")
-  .pipe(csv())
-  .on("data", (row) => {
-    data.push(row);
-  })
-  .on("end", () => {
-    console.log("CSV file successfully processed");
+const insert = db.prepare(`
+  INSERT INTO employee_data (
+    employee_id,
+    employee_name,
+    level,
+    occupation,
+    mon_st_hours,
+    tue_st_hours,
+    wed_st_hours,               
+    thu_st_hours,
+    fri_st_hours,
+    sat_st_hours,
+    sun_st_hours,
+    mon_ot_hours,
+    tue_ot_hours,
+    wed_ot_hours,
+    thu_ot_hours,
+    fri_ot_hours,
+    sat_ot_hours,
+    sun_ot_hours,
+    standard_rate,
+    overtime_rate,
+    benefits_rate
+  ) VALUES (
+    @employee_id,
+    @employee_name,
+    @level,
+    @occupation,
+    @mon_st_hours,
+    @tue_st_hours,
+    @wed_st_hours,               
+    @thu_st_hours,
+    @fri_st_hours,
+    @sat_st_hours,
+    @sun_st_hours,
+    @mon_ot_hours,
+    @tue_ot_hours,
+    @wed_ot_hours,
+    @thu_ot_hours,
+    @fri_ot_hours,
+    @sat_ot_hours,
+    @sun_ot_hours,
+    @standard_rate,
+    @overtime_rate,
+    @benefits_rate
+  )
+`);
+
+const startServer = () => {
+  app.listen(port, () => {
+    console.log(`Example app listening on port ${port}`);
   });
+};
 
+if (isSeeded) {
+  console.log("DB already populated, skipping ingest");
+  startServer();
+} else {
+  fs.createReadStream("payroll_data.csv")
+    .pipe(csv())
+    .on("data", (row) => {
+      insert.run({
+        employee_name: row.employee_name,
+        employee_id: row.employee_id,
+        level: row.level,
+        occupation: row.occupation,
+        week_ending: row.week_ending,
+        mon_st_hours: parseFloat(row.mon_st_hours) || 0,
+        tue_st_hours: parseFloat(row.tue_st_hours) || 0,
+        wed_st_hours: parseFloat(row.wed_st_hours) || 0,
+        thu_st_hours: parseFloat(row.thu_st_hours) || 0,
+        fri_st_hours: parseFloat(row.fri_st_hours) || 0,
+        sat_st_hours: parseFloat(row.sat_st_hours) || 0,
+        sun_st_hours: parseFloat(row.sun_st_hours) || 0,
+        mon_ot_hours: parseFloat(row.mon_ot_hours) || 0,
+        tue_ot_hours: parseFloat(row.tue_ot_hours) || 0,
+        wed_ot_hours: parseFloat(row.wed_ot_hours) || 0,
+        thu_ot_hours: parseFloat(row.thu_ot_hours) || 0,
+        fri_ot_hours: parseFloat(row.fri_ot_hours) || 0,
+        sat_ot_hours: parseFloat(row.sat_ot_hours) || 0,
+        sun_ot_hours: parseFloat(row.sun_ot_hours) || 0,
+        standard_rate: parseFloat(row.standard_rate) || 0,
+        overtime_rate: parseFloat(row.overtime_rate) || 0,
+        benefits_rate: parseFloat(row.benefits_rate) || 0,
+      });
+    })
+    .on("end", () => {
+      console.log("CSV ingested into DB");
+      startServer();
+    })
+    .on("error", (err) => {
+      console.error("Failed to ingest CSV:", err.message);
+      process.exit(1);
+    });
+}
+
+// Define API endpoint to get all employee data
 app.get("/api/data", (req, res) => {
+  const data = db.prepare("SELECT * FROM employee_data").all();
   res.json(data);
 });
 

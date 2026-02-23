@@ -22,7 +22,7 @@ function App() {
   })
 
   // query for outlier detection data
-  const { data: outliers, isLoading: outliersLoading } = useQuery({
+  const { data: outliers, } = useQuery({
     queryKey: ['outliers'],
     queryFn: outlierDetection,
   })  
@@ -119,6 +119,9 @@ function App() {
               ))}
             </tbody>
           </table>
+          {/* <Employee employee={employeeStats[0]} />   */}
+
+         
         </div>
       ) : (
         !employeeStatsLoading && <p>No employee stats available</p>
