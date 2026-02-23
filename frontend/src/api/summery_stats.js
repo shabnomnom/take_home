@@ -67,8 +67,7 @@ const getData = async () => {
       parseFloat(row.sun_ot_hours);
     const standardPay = standardHours * parseFloat(row.standard_rate);
     const overtimePay = overtimeHours * parseFloat(row.overtime_rate);
-    const benefitsPay =
-      (standardPay + overtimePay) * (parseFloat(row.benefits_rate) / 100);
+    const benefitsPay = (standardPay + overtimePay) * row.benefits_rate;
     return acc + standardPay + overtimePay + benefitsPay;
   }, 0);
   console.log("Cumulative payroll spend: ", cumulativePayrollSpend);
