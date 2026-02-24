@@ -111,6 +111,43 @@ app.get("/api/data", (req, res) => {
   res.json(data);
 });
 
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`);
+// get endpoint for the summery stats
+app.get("/api/summary_stats", (req, res) => {
+  const summary = db
+    .prepare(
+      `
+      SELECT
+      COUNT(DISTINCT employee_id) AS unique_employees,
+      ROUND(AVG(standard_rate), 2) AS avg_standard_rate,
+      ROUND(AVG(overtime_rate), 2) AS avg_overtime_rate,
+      ROUND(AVG(benefits_rate), 2) AS avg_benefits_rate,
+      ROUND(SUM(
+        (mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours) * standard_rate +
+        (mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours) * overtime_rate +
+        (mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+         mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours) * benefits_rate
+      ), 2) AS cumulative_payroll_spend,
+      ROUND(
+        100.0 * SUM(CASE WHEN level = 'APPRENTICE' THEN
+          mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+          mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours
+        ELSE 0 END) /
+        SUM(
+          mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+          mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours
+        ), 2
+      ) AS apprentice_hours_pct
+    FROM employee_data
+  `
+    )
+    .get();
+
+  res.json({
+    unique_employees: summary.unique_employees,
+    avg_standard_rate: summary.avg_standard_rate,
+    avg_overtime_rate: summary.avg_overtime_rate,
+    avg_benefits_rate: summary.avg_benefits_rate,
+    cumulative_payroll_spend: summary.cumulative_payroll_spend,
+    apprentice_hours_percentage: summary.apprentice_hours_pct,
+  });
 });
