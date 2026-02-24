@@ -29,3 +29,5 @@ Few Notes:
 5. Add proper vis tool to demonstrate the outliers. For example, create a bar graph to show the average week earnings for each employee dynamically. [issue #4](https://github.com/shabnomnom/take_home/issues/4).
 
 <img width="703" height="764" alt="Image" src="https://github.com/user-attachments/assets/06ca555c-7eb5-4195-9763-51034a0afbb2" /> 
+
+6. Add tests and perform a thorough review for spelling and grammar errors.
