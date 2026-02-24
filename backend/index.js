@@ -150,4 +150,8 @@ app.get("/api/summary_stats", (req, res) => {
     cumulative_payroll_spend: summary.cumulative_payroll_spend,
     apprentice_hours_percentage: summary.apprentice_hours_pct,
   });
+
+  // TODO:create a new endpoint for employee stats and return the min, max and average of standard_rate, overtime_rate and benefits_rate for each employee for ALL Employee for dashboard usecase.
+
+  // TODO: Add an endpoint to get employee stats per employee, including min, max, and average of standard_rate, overtime_rate, and benefits_rate. This will be used for more drill-down analysis on the dashboard.
 });
