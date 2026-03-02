@@ -1,6 +1,6 @@
 import './App.css'
 import { useQuery} from '@tanstack/react-query'
-import getSummeryStats from './api/summery_stats'
+import getSummeryStats from './api/summary_stats'
 import getEmployeeStats from './api/employee_stats'
 import Employee from './components/Employee'
 import outlierDetection from './api/anomaly_detection'
@@ -69,12 +69,12 @@ function App() {
         </thead>
         <tbody>
           <tr>
-            <td>{data.uniqueEmployees}</td>
-            <td>{data.averageWageRate}</td>
-            <td>{data.averageOvertimeRate}</td>
-            <td>{data.averageBenefitsRate}</td>
-            <td>${data.cumulativePayrollSpend}</td>
-            <td>%{data.percentageApprenticeHours}</td>
+            <td>{data.unique_employees}</td>
+            <td>{data.avg_standard_rate}</td>
+            <td>{data.avg_overtime_rate}</td>
+            <td>{data.avg_benefits_rate}</td>
+            <td>{data.cumulative_payroll_spend}$</td>
+            <td>{data.apprentice_hours_percentage}%</td>
           </tr>
         </tbody>
       </table>
