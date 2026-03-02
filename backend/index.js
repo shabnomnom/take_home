@@ -267,3 +267,303 @@ app.get("/api/all_employee_stats", (req, res) => {
     }))
   );
 });
+
+app.get("/api/anomalies", (req, res) => {
+  const anomalies = [];
+
+  // STEP 1A — daily hours > 12
+  const highHours = db
+    .prepare(
+      `
+    SELECT
+      employee_id,
+      employee_name,
+      level,
+      occupation,
+      week_ending,
+      CASE
+        WHEN mon_st_hours + mon_ot_hours > 12 THEN 'MON'
+        WHEN tue_st_hours + tue_ot_hours > 12 THEN 'TUE'
+        WHEN wed_st_hours + wed_ot_hours > 12 THEN 'WED'
+        WHEN thu_st_hours + thu_ot_hours > 12 THEN 'THU'
+        WHEN fri_st_hours + fri_ot_hours > 12 THEN 'FRI'
+        WHEN sat_st_hours + sat_ot_hours > 12 THEN 'SAT'
+        WHEN sun_st_hours + sun_ot_hours > 12 THEN 'SUN'
+      END AS flagged_day,
+      ROUND(MAX(
+        mon_st_hours + mon_ot_hours,
+        tue_st_hours + tue_ot_hours,
+        wed_st_hours + wed_ot_hours,
+        thu_st_hours + thu_ot_hours,
+        fri_st_hours + fri_ot_hours,
+        sat_st_hours + sat_ot_hours,
+        sun_st_hours + sun_ot_hours
+      ), 2) AS max_daily_hours
+    FROM employee_data
+    WHERE
+      mon_st_hours + mon_ot_hours > 12 OR
+      tue_st_hours + tue_ot_hours > 12 OR
+      wed_st_hours + wed_ot_hours > 12 OR
+      thu_st_hours + thu_ot_hours > 12 OR
+      fri_st_hours + fri_ot_hours > 12 OR
+      sat_st_hours + sat_ot_hours > 12 OR
+      sun_st_hours + sun_ot_hours > 12
+  `
+    )
+    .all();
+
+  highHours.forEach((row) => {
+    anomalies.push({
+      employee_id: row.employee_id,
+      employee_name: row.employee_name,
+      level: row.level,
+      occupation: row.occupation,
+      week_ending: row.week_ending,
+      flag_type: "HOURS_DAY_HIGH",
+      severity: "HIGH",
+      message: `${row.flagged_day} has ${row.max_daily_hours}h — exceeds 12 hour daily limit`,
+    });
+  });
+
+  // STEP 1B — OT rate <= standard rate
+  const invalidOTRate = db
+    .prepare(
+      `
+    SELECT
+      employee_id,
+      employee_name,
+      level,
+      occupation,
+      week_ending,
+      standard_rate,
+      overtime_rate
+    FROM employee_data
+    WHERE overtime_rate <= standard_rate
+  `
+    )
+    .all();
+
+  invalidOTRate.forEach((row) => {
+    anomalies.push({
+      employee_id: row.employee_id,
+      employee_name: row.employee_name,
+      level: row.level,
+      occupation: row.occupation,
+      week_ending: row.week_ending,
+      flag_type: "OT_RATE_INVALID",
+      severity: "HIGH",
+      message: `OT rate $${row.overtime_rate} is not greater than standard rate $${row.standard_rate}`,
+    });
+  });
+
+  // STEP 1C — OT hours on a day with zero ST hours
+  const otWithoutST = db
+    .prepare(
+      `
+    SELECT
+      employee_id,
+      employee_name,
+      level,
+      occupation,
+      week_ending,
+      CASE
+        WHEN mon_ot_hours > 0 AND mon_st_hours = 0 THEN 'MON'
+        WHEN tue_ot_hours > 0 AND tue_st_hours = 0 THEN 'TUE'
+        WHEN wed_ot_hours > 0 AND wed_st_hours = 0 THEN 'WED'
+        WHEN thu_ot_hours > 0 AND thu_st_hours = 0 THEN 'THU'
+        WHEN fri_ot_hours > 0 AND fri_st_hours = 0 THEN 'FRI'
+        WHEN sat_ot_hours > 0 AND sat_st_hours = 0 THEN 'SAT'
+        WHEN sun_ot_hours > 0 AND sun_st_hours = 0 THEN 'SUN'
+      END AS flagged_day
+    FROM employee_data
+    WHERE
+      (mon_ot_hours > 0 AND mon_st_hours = 0) OR
+      (tue_ot_hours > 0 AND tue_st_hours = 0) OR
+      (wed_ot_hours > 0 AND wed_st_hours = 0) OR
+      (thu_ot_hours > 0 AND thu_st_hours = 0) OR
+      (fri_ot_hours > 0 AND fri_st_hours = 0) OR
+      (sat_ot_hours > 0 AND sat_st_hours = 0) OR
+      (sun_ot_hours > 0 AND sun_st_hours = 0)
+  `
+    )
+    .all();
+
+  otWithoutST.forEach((row) => {
+    anomalies.push({
+      employee_id: row.employee_id,
+      employee_name: row.employee_name,
+      level: row.level,
+      occupation: row.occupation,
+      week_ending: row.week_ending,
+      flag_type: "OT_WITHOUT_ST",
+      severity: "MEDIUM",
+      message: `${row.flagged_day} has OT hours but zero standard hours`,
+    });
+  });
+
+  // STEP 2 — rate anomalies against employee history + group + level violation
+  const rateHistory = db
+    .prepare(
+      `
+    WITH employee_medians AS (
+      SELECT
+        employee_id,
+        AVG(standard_rate) AS median_rate
+      FROM employee_data
+      GROUP BY employee_id
+    ),
+    occupation_level_medians AS (
+      SELECT
+        occupation,
+        level,
+        AVG(standard_rate) AS group_median
+      FROM employee_data
+      GROUP BY occupation, level
+    ),
+    journeyworker_medians AS (
+      SELECT
+        occupation,
+        AVG(standard_rate) AS jw_median
+      FROM employee_data
+      WHERE level = 'JOURNEYWORKER'
+      GROUP BY occupation
+    )
+    SELECT
+      e.employee_id,
+      e.employee_name,
+      e.level,
+      e.occupation,
+      e.week_ending,
+      e.standard_rate,
+      ROUND(em.median_rate, 2) AS employee_median,
+      ROUND(olm.group_median, 2) AS group_median,
+      ROUND(jm.jw_median, 2) AS journeyworker_median,
+      ROUND(ABS(e.standard_rate - em.median_rate) / em.median_rate * 100, 2) AS history_deviation_pct,
+      ROUND(ABS(e.standard_rate - olm.group_median) / olm.group_median * 100, 2) AS group_deviation_pct
+    FROM employee_data e
+    JOIN employee_medians em ON e.employee_id = em.employee_id
+    JOIN occupation_level_medians olm ON e.occupation = olm.occupation AND e.level = olm.level
+    LEFT JOIN journeyworker_medians jm ON e.occupation = jm.occupation
+    WHERE
+      ABS(e.standard_rate - em.median_rate) / em.median_rate > 0.15
+      OR ABS(e.standard_rate - olm.group_median) / olm.group_median > 0.20
+      OR (e.level = 'APPRENTICE' AND e.standard_rate >= jm.jw_median)
+  `
+    )
+    .all();
+
+  rateHistory.forEach((row) => {
+    if (row.history_deviation_pct > 15) {
+      anomalies.push({
+        employee_id: row.employee_id,
+        employee_name: row.employee_name,
+        level: row.level,
+        occupation: row.occupation,
+        week_ending: row.week_ending,
+        flag_type: "RATE_HISTORY_SPIKE",
+        severity: row.history_deviation_pct > 40 ? "HIGH" : "MEDIUM",
+        message: `Rate $${row.standard_rate} deviates ${row.history_deviation_pct}% from employee median $${row.employee_median}`,
+      });
+    }
+
+    if (row.group_deviation_pct > 20) {
+      anomalies.push({
+        employee_id: row.employee_id,
+        employee_name: row.employee_name,
+        level: row.level,
+        occupation: row.occupation,
+        week_ending: row.week_ending,
+        flag_type: "RATE_GROUP_OUTLIER",
+        severity: row.group_deviation_pct > 50 ? "HIGH" : "MEDIUM",
+        message: `Rate $${row.standard_rate} deviates ${row.group_deviation_pct}% from ${row.occupation} ${row.level} median $${row.group_median}`,
+      });
+    }
+
+    if (
+      row.level === "APPRENTICE" &&
+      row.journeyworker_median &&
+      row.standard_rate >= row.journeyworker_median
+    ) {
+      anomalies.push({
+        employee_id: row.employee_id,
+        employee_name: row.employee_name,
+        level: row.level,
+        occupation: row.occupation,
+        week_ending: row.week_ending,
+        flag_type: "LEVEL_RATE_VIOLATION",
+        severity: "HIGH",
+        message: `APPRENTICE rate $${row.standard_rate} meets or exceeds JOURNEYWORKER median $${row.journeyworker_median} for ${row.occupation} — PWA violation`,
+      });
+    }
+  });
+
+  // STEP 3 — name inconsistencies
+  const nameInconsistencies = db
+    .prepare(
+      `
+    SELECT
+      employee_id,
+      COUNT(DISTINCT employee_name) AS name_count,
+      GROUP_CONCAT(DISTINCT employee_name) AS names
+    FROM employee_data
+    GROUP BY employee_id
+    HAVING name_count > 1
+  `
+    )
+    .all();
+
+  nameInconsistencies.forEach((row) => {
+    anomalies.push({
+      employee_id: row.employee_id,
+      employee_name: row.names,
+      level: null,
+      occupation: null,
+      week_ending: null,
+      flag_type: "NAME_INCONSISTENCY",
+      severity: "MEDIUM",
+      message: `Employee ID ${row.employee_id} has ${row.name_count} different name spellings: ${row.names}`,
+    });
+  });
+
+  // STEP 4 — low weekly hours
+  const lowHours = db
+    .prepare(
+      `
+    SELECT
+      employee_id,
+      employee_name,
+      level,
+      occupation,
+      week_ending,
+      ROUND(
+        mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+        mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours
+      , 2) AS total_hours
+    FROM employee_data
+    WHERE (
+      mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+      mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours
+    ) > 0
+    AND (
+      mon_st_hours + tue_st_hours + wed_st_hours + thu_st_hours + fri_st_hours + sat_st_hours + sun_st_hours +
+      mon_ot_hours + tue_ot_hours + wed_ot_hours + thu_ot_hours + fri_ot_hours + sat_ot_hours + sun_ot_hours
+    ) < 15
+  `
+    )
+    .all();
+
+  lowHours.forEach((row) => {
+    anomalies.push({
+      employee_id: row.employee_id,
+      employee_name: row.employee_name,
+      level: row.level,
+      occupation: row.occupation,
+      week_ending: row.week_ending,
+      flag_type: "HOURS_WEEK_LOW",
+      severity: "MEDIUM",
+      message: `Only ${row.total_hours}h total this week — possible incomplete submission`,
+    });
+  });
+
+  res.json(anomalies);
+});

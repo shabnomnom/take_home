@@ -1,18 +1,41 @@
 import './Employee.css';
 
-const Employee = ({ employee }) => {
-  if (!employee) return null;
+const Employee = ({ employee, anomalies }) => {
+  const hasAnomaly = anomalies && anomalies.length > 0;
 
   return (
-    <div className="employee-card">
+    <div className={`employee-card ${hasAnomaly ? 'anomaly' : ''}`}>
       <div className="employee-header">
         <h3>{employee.employee_name}</h3>
         <div className="employee-details">
           <span className="employee-id">ID: {employee.employee_id}</span>
           <span className="employee-level">Level: {employee.level}</span>
           <span className="employee-occupation">{employee.occupation}</span>
+          {hasAnomaly && (
+            <span style={{ color: '#e53e3e', borderColor: '#e53e3e' }}>
+              ⚠ {anomalies.length} issue{anomalies.length > 1 ? 's' : ''} flagged
+            </span>
+          )}
         </div>
       </div>
+      {hasAnomaly && (
+        <div style={{ marginBottom: '1rem' }}>
+          {anomalies.map((a, i) => (
+            <div key={i} style={{
+              padding: '8px 12px',
+              marginBottom: '6px',
+              background: a.severity === 'HIGH' ? '#fff5f5' : '#fffbf0',
+              border: `1px solid ${a.severity === 'HIGH' ? '#feb2b2' : '#fbd38d'}`,
+              borderRadius: '4px',
+              fontSize: '0.85rem',
+              color: a.severity === 'HIGH' ? '#c53030' : '#92400e'
+            }}>
+              <strong>{a.flag_type}</strong> · {a.message}
+            </div>
+          ))}
+        </div>
+      )}
+
 
       <div className="metrics-grid">
         {/* Daily Hours Stats */}

@@ -119,3 +119,32 @@ body, .App {
     transition: none;
   }
 }
+/* table row states */
+.row-high {
+  background-color: #fff5f5;
+}
+
+.row-medium {
+  background-color: #fffbf0;
+}
+
+.row-selected {
+  background-color: #e8f4e8;
+}
+
+.row-high:hover,
+.row-medium:hover,
+.row-selected:hover {
+  filter: brightness(0.97);
+}
+
+/* anomaly badge in table */
+.flag-high {
+  color: #e53e3e;
+  margin-left: 8px;
+}
+
+.flag-medium {
+  color: #d97706;
+  margin-left: 8px;
+}
