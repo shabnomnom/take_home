@@ -19,7 +19,7 @@ body, .App {
 
 /* Table layout and responsive wrapper */
 .table-responsive {
-  width: 100%;
+  width: 50%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 8px;
@@ -28,7 +28,7 @@ body, .App {
 
 /* Base table */
 .data-table {
-  width: 100%;
+  width: 60%;
   min-width: 640px; /* allows horizontal scroll on small screens */
   border-collapse: collapse;
   font-family: inherit;
