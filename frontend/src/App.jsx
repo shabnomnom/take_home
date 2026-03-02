@@ -4,6 +4,8 @@ import getSummeryStats from './api/summary_stats'
 import getEmployeeStats from './api/employee_stats'
 import Employee from './components/Employee'
 import outlierDetection from './api/anomaly_detection'
+import { useState } from 'react' 
+
 
 
 
@@ -21,15 +23,13 @@ function App() {
     queryFn: getEmployeeStats,
   })
 
+  const [ selectedEmployee, setSelectedEmployee] = useState(null)
+
   // query for outlier detection data
-  const { data: outliers, } = useQuery({
+  const { data: _outliers } = useQuery({
     queryKey: ['outliers'],
     queryFn: outlierDetection,
   })  
-
-  console.log('outliers:', outliers);
-  // console.log('employeeStats:', employeeStats);
-  // console.log('employeeStatsLoading:', employeeStatsLoading);
   
   if (isPending) {
     return (
@@ -44,8 +44,6 @@ function App() {
     
   }
   
-
-
   // make a table to display the data coming from ./api/data :
     // uniqueEmployees,
     // averageWageRate,
@@ -73,64 +71,58 @@ function App() {
             <td>{data.avg_standard_rate}</td>
             <td>{data.avg_overtime_rate}</td>
             <td>{data.avg_benefits_rate}</td>
-            <td>{data.cumulative_payroll_spend}$</td>
+            <td>${data.cumulative_payroll_spend}</td>
             <td>{data.apprentice_hours_percentage}%</td>
           </tr>
         </tbody>
       </table>
-      <h1>Employee Statistics</h1>
       {employeeStatsLoading && <p>Loading employee stats...</p>}
       {employeeStats && employeeStats.length > 0 ? (
         <div>
           <h2>Employee Overview ({employeeStats.length} employees)</h2>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Employee Name</th>
-                <th>ID</th>
-                <th>Level</th>
-                <th>Occupation</th>
-                <th>Daily Hours (Min/Max/Avg)</th>
-                <th>Standard Rate (Min/Max/Avg)</th>
-                <th>Overtime Rate (Min/Max/Avg)</th>
-                <th>Benefits Rate (Min/Max/Avg)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {employeeStats.map(employee => (
-                <tr key={employee.employee_id}>
-                  <td>{employee.employee_name}</td>
-                  <td>{employee.employee_id}</td>
-                  <td>{employee.level}</td>
-                  <td>{employee.occupation}</td>
-                  <td>
-                    {employee.dailyHours.min}h / {employee.dailyHours.max}h / {employee.dailyHours.avg}h
-                  </td>
-                  <td>
-                    ${employee.standardRate.min} / ${employee.standardRate.max} / ${employee.standardRate.avg}
-                  </td>
-                  <td>
-                    ${employee.overtimeRate.min} / ${employee.overtimeRate.max} / ${employee.overtimeRate.avg}
-                  </td>
-                  <td>
-                    ${employee.benefitsRate.min} / ${employee.benefitsRate.max} / ${employee.benefitsRate.avg}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* <Employee employee={employeeStats[0]} />   */}
-
-         
+          <div style={{ display: 'flex', gap: '24px', alignItems: 'flex-start' }}>
+            <div style={{ flex: 1 }}>
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Employee Name</th>
+                    <th>ID</th>
+                    <th>Level</th>
+                    <th>Occupation</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employeeStats.map(employee => (
+                    <tr key={employee.employee_id}
+                        onClick={() => setSelectedEmployee(employee)}
+                        style={{ cursor: 'pointer', backgroundColor: selectedEmployee && selectedEmployee.employee_id === employee.employee_id ? '#f0f8ff' : 'transparent' }}
+                    >
+                      <td>{employee.employee_name}</td>
+                      <td>{employee.employee_id}</td>
+                      <td>{employee.level}</td>
+                      <td>{employee.occupation}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* RIGHT — card */}
+            <div style={{ flex: 1, position: 'sticky', top: '24px' }}>
+              {selectedEmployee ? (
+                <div>
+                  <button onClick={() => setSelectedEmployee(null)}>Close</button>
+                  <Employee employee={selectedEmployee} />
+                </div>
+              ) : (
+                <p style={{ color: '#aaa' }}>Select an employee to view details</p>
+              )}
+            </div>
+          </div>
         </div>
       ) : (
         !employeeStatsLoading && <p>No employee stats available</p>
       )}
-
-
-    
     </div>
-
   )
 }
 
