@@ -1,5 +1,11 @@
 body, .App {
   background-color: #fff;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 24px 80px;
+  box-sizing: border-box;
+
 }
 
 .App h1 {
@@ -19,7 +25,7 @@ body, .App {
 
 /* Table layout and responsive wrapper */
 .table-responsive {
-  width: 50%;
+  width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   border-radius: 8px;
@@ -28,7 +34,7 @@ body, .App {
 
 /* Base table */
 .data-table {
-  width: 60%;
+  width: 100%;
   min-width: 640px; /* allows horizontal scroll on small screens */
   border-collapse: collapse;
   font-family: inherit;
@@ -118,4 +124,33 @@ body, .App {
   .data-table tbody tr:hover td {
     transition: none;
   }
+}
+/* table row states */
+.row-high {
+  background-color: #fff5f5;
+}
+
+.row-medium {
+  background-color: #fffbf0;
+}
+
+.row-selected {
+  background-color: #e8f4e8;
+}
+
+.row-high:hover,
+.row-medium:hover,
+.row-selected:hover {
+  filter: brightness(0.97);
+}
+
+/* anomaly badge in table */
+.flag-high {
+  color: #e53e3e;
+  margin-left: 8px;
+}
+
+.flag-medium {
+  color: #d97706;
+  margin-left: 8px;
 }
