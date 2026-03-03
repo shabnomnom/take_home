@@ -32,18 +32,10 @@ function App() {
   })
   console.log("Outliers data: ", outliers)
   
-  if (isPending) {
-    return (
-      <h1>Loading ...</h1>
-    )
+  if (isPending) return ( <h1>Loading ...</h1>)
+  if (error)  return ( <h1>{error.message}</h1>)
     
-  }
-  if (error) {
-    return (
-      <h1>{error.message}</h1>
-    )
-    
-  }
+
   
   
   // make a table to display the data coming from ./api/data :
@@ -53,10 +45,7 @@ function App() {
   // averageBenefitsRate,
   // cumulativePayrollSpend,
   // percentageApprenticeHours,
-  {
-    employeeStats.map(employee => {
-      const hasAnomaly = outliers?.some(o => String(o.employee_id) === String(employee.employee_id));
-      const hasHighSeverity = outliers?.some(o => String(o.employee_id) === String(employee.employee_id) && o.severity === 'HIGH');
+
       return (
         <div className="App">
           <h1>Summery Statistics</h1>
@@ -95,33 +84,39 @@ function App() {
                         <th>ID</th>
                         <th>Level</th>
                         <th>Occupation</th>
+                        <th>Flags</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {employeeStats.map(employee => (
-                        <tr key={employee.employee_id}
-                          onClick={() => setSelectedEmployee(employee)}
-                          className={
-                            selectedEmployee?.employee_id === employee.employee_id
-                              ? 'row-selected'
-                              : hasHighSeverity
-                                ? 'row-high'
-                                : hasAnomaly
-                                  ? 'row-medium'
-                                  : ''
-                          }
-                          style={{ cursor: 'pointer', backgroundColor: selectedEmployee && selectedEmployee.employee_id === employee.employee_id ? '#f0f8ff' : 'transparent' }}
-                        >
-                          <td>{employee.employee_name}</td>
-                          <td>{employee.employee_id}</td>
-                          <td>{employee.level}</td>
-                          <td>{employee.occupation}</td>
-                          <td>
-                            {hasHighSeverity && <span className="flag-high">⚠</span>}
-                            {!hasHighSeverity && hasAnomaly && <span className="flag-medium">⚠</span>}
-                          </td>
-                        </tr>
-                      ))}
+                      {employeeStats.map(employee => {
+                        const hasAnomaly = outliers?.some(o => String(o.employee_id) === String(employee.employee_id));
+                        const hasHighSeverity = outliers?.some(o => String(o.employee_id) === String(employee.employee_id) && o.severity === 'HIGH');
+
+                        return (
+                          <tr key={employee.employee_id}
+                            onClick={() => setSelectedEmployee(employee)}
+                            className={
+                              selectedEmployee?.employee_id === employee.employee_id
+                                ? 'row-selected'
+                                : hasHighSeverity
+                                  ? 'row-high'
+                                  : hasAnomaly
+                                    ? 'row-medium'
+                                    : ''
+                            }
+                            style={{ cursor: 'pointer' }}
+                          >
+                            <td>{employee.employee_name}</td>
+                            <td>{employee.employee_id}</td>
+                            <td>{employee.level}</td>
+                            <td>{employee.occupation}</td>
+                            <td>
+                              {hasHighSeverity && <span className="flag-high">⚠</span>}
+                              {!hasHighSeverity && hasAnomaly && <span className="flag-medium">⚠</span>}
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -143,54 +138,8 @@ function App() {
             !employeeStatsLoading && <p>No employee stats available</p>
           )}
    
-          <h1>Anomaly Detection</h1>
-          {outliers && outliers.length > 0 ? (
-            <div>
-              <p style={{ color: '#666', marginBottom: '1rem' }}>
-                {outliers.filter(o => o.severity === 'HIGH').length} high severity ·{' '}
-                {outliers.filter(o => o.severity === 'MEDIUM').length} medium severity
-              </p>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Employee</th>
-                    <th>Week</th>
-                    <th>Flag</th>
-                    <th>Severity</th>
-                    <th>Message</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {outliers
-                    .sort((a, b) => a.severity === 'HIGH' ? -1 : 1)
-                    .map((anomaly, index) => (
-                      <tr
-                        key={index}
-                        style={{
-                          backgroundColor: anomaly.severity === 'HIGH' ? '#fff5f5' : '#fffbf0'
-                        }}
-                      >
-                        <td>{anomaly.employee_name}</td>
-                        <td>{anomaly.week_ending ?? '—'}</td>
-                        <td><code>{anomaly.flag_type}</code></td>
-                        <td style={{ color: anomaly.severity === 'HIGH' ? '#e53e3e' : '#d97706', fontWeight: 600 }}>
-                          {anomaly.severity}
-                        </td>
-                        <td>{anomaly.message}</td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <p style={{ color: '#aaa' }}>No anomalies detected</p>
-          )}
         </div>
       )
-    }
-    )
-  }
-  
 }
 
 
